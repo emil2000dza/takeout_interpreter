@@ -3,3 +3,5 @@ data/raw_data/Mon activité/*
 data/raw_data/Historique.json
 google-cloud-sdk/
 logs/
+.env
+__pycache__
