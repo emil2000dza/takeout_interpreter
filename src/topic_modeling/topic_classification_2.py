@@ -119,7 +119,6 @@ if __name__ == "__main__":
             ChromeHistory.url
         ).distinct().all()
 
-    # Count already stored
     with client_snowflake.session_scope() as session:
         # Ensure table exists
         session.execute(text(f"""
@@ -130,11 +129,25 @@ if __name__ == "__main__":
             )
         """))
 
-        result = session.execute(text(f"SELECT COUNT(*) FROM {NEW_CLASSIFICATION_TABLE}")).fetchone()
+        # Count already classified rows
+        result = session.execute(
+            text(f"SELECT COUNT(DISTINCT url) FROM {NEW_CLASSIFICATION_TABLE}")
+        ).fetchone()
         done_count = result[0] if result and result[0] is not None else 0
-    print(f"Already classified: {done_count}")
 
-    titles, urls, labels = [], [], []
+        # Load existing rows
+        classified_rows = session.execute(
+            text(f"SELECT title, url, topics FROM {NEW_CLASSIFICATION_TABLE}")
+        ).fetchall()
+
+    # Initialize lists from table contents
+    titles = list(set([row[0] for row in classified_rows]))
+    urls   = list(set([row[1] for row in classified_rows]))
+    labels = list(set([row[2] for row in classified_rows]))
+
+    print(f"Initialized {len(titles)} records from {NEW_CLASSIFICATION_TABLE}")
+    rows = [row for row in rows if row[1] not in list(set(urls))]
+
     for i in tqdm(range(0, len(rows), BATCH_SIZE)):
         batch_rows = rows[i:i+BATCH_SIZE]
         batch = [{"title": r.title, "url": r.url} for r in batch_rows]

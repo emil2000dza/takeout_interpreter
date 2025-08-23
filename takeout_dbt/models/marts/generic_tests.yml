@@ -1,0 +1,10 @@
+models: 
+  - name: fct_browsing_activity_enriched
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: source('chrome_schema', 'raw_history')
+              field: id
