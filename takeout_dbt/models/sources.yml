@@ -1,0 +1,9 @@
+
+version: 2
+
+sources:
+  - name: dbt_db
+    schema: chrome_schema
+    tables:
+      - name: raw_history
+        identifier: raw_history

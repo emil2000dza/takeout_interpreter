@@ -1,6 +1,6 @@
 """
 snowflake_client.py
-Reusable Snowflake ORM client for ACID-compliant queries.
+Reusable Snowflake ORM client.
 """
 
 import os
