@@ -1,21 +1,20 @@
 TOPIC_DISCOVERY_PROMPT = """
 You are an expert in topic modeling and semantic clustering. 
-You are given a collection of Chrome browsing history entries. 
+You are given a collection of Chrome browsing history entries on {domain} website. 
 Each entry has:
 - title: the page title
 - url: the full URL visited
-- domain: the website domain
 
 ## Data sample:
 {history_sample}
 
 ## Your task:
-1. Analyze the browsing history to discover recurring **topics**.
+1. Analyze the browsing history on {domain} to discover recurring **topics**.
 2. Consider:
-   - The reputation and main purpose of each domain.
+   - The reputation and main purpose of {domain}.
    - The type of content searched or viewed.
-   - The user's apparent intent based on the title and URL.
-3. Group similar entries/domains into topics that are **general enough** to include future related pages, 
+   - The user's apparent intent based on the title and URL visited.
+3. Group similar entries into topics that are **general enough** to include future related pages, 
    but **specific enough** to be meaningful.
 4. Avoid making a topic that’s only a single URL.
 5. Prioritize topics that are **actionable** or relevant to productivity analysis.
@@ -33,19 +32,19 @@ name and each value is:
 {{
   "Topic Name": {{
     "description": "short description",
-    "example_domains": ["domain1.com", "domain2.com"],
+    "example_domains": ["domain1.com/a", "domain1.com/b"],
     "example_titles": ["Title 1", "Title 2"]
   }}
 }}
 
-Now, extract the topic set from the provided browsing history.
+Now, extract the topic set from the {domain} browsing history.
 """
 
 TOPIC_REFINMENT_PROMPT = """
 You are an expert in profiling and semantic clustering. 
-You are given a collection of general topics from Chrome browsing history of a specific user.
+You are given a collection of general topics from Chrome browsing history on {domain} website of a specific user.
 Your goal is to interpret the user history and maximizes the actions he could take regarding its online
-activity. Goal is to give specific and actionnable insights to him/her.
+activity on {domain}. Goal is to give specific and actionnable insights to him/her.
 Each entry has:
 - name: the topic name, a comprehensive title specifying a part of the browsing activity of our user
 - description: a more complete description of the topic and how it is related to the browsing activity
@@ -54,11 +53,11 @@ Each entry has:
 {all_topics}
 
 ## Your task:
-1. Analyze the recurring topics regarding the browsing activity and refine it to 5 to 15 broader 
+1. Analyze the recurring topics regarding the browsing activity on {domain} and refine it to 5 to 15 broader 
 topics that would particularly interest the user on his activity.
 2. Be explicit in the title and give more detail in the description, 
 3. Make sure in the wording you use that the user discovers himself through the analysis of the output topics,
-3. Group similar entries/domains into topics that are **general enough** to include future related pages, 
+3. Refined topics should be **general enough** to include future related pages, 
    but **specific enough** to be meaningful.
 5. Prioritize topics that are **actionable** or relevant to productivity analysis.
 6. Do not output more than 15 topics. 
@@ -75,12 +74,12 @@ name and each value is:
 {{
   "Topic Name": {{
     "description": "short description",
-    "example_domains": ["domain1.com", "domain2.com"],
+    "example_domains": ["domain1.com/a", "domain1.com/b"],
     "example_titles": ["Title 1", "Title 2"]
   }}
 }}
 
-Now, extract the topic set from the provided browsing history.
+Now, extract the topic set from the {domain} browsing history.
 """
 
 TOPIC_ASSIGNMENT_PROMPT = """

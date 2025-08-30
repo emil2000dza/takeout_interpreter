@@ -1,35 +1,42 @@
 """
 topic_classification.py
 
-Classifies each Chrome history entry into 0–5 topics using TOPIC_CLASSIFICATION_PROMPT.
-If an entry matches a "doomscrolling" URL, it is tagged accordingly.
-Each classification result is immediately written into Snowflake,
-so progress is not lost if the script stops midway.
+Classifies Chrome history entries into topics using TOPIC_ASSIGNMENT_PROMPT in batch mode.
+- Before 10k entries: LLM is used in batches of URLs
+- After 10k entries: A TF-IDF classifier trained on (title, topics) is used
+- Each classification result is immediately written into Snowflake
 """
 
 import os
 import json
+import time
+from typing import Dict, List
 from tqdm import tqdm
-from typing import List, Dict
 from sqlalchemy import text
 from dotenv import load_dotenv
-import time
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.pipeline import Pipeline
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.linear_model import LogisticRegression
 
 from src.db.snowflake_client import SnowflakeORM
-from src.db.tables import ChromeHistory, ClassifiedHistoryTopics
+from src.db.tables import ChromeHistory
 from src.topic_modeling.gemini import call_llm
-from src.topic_modeling.prompts import TOPIC_ASSIGNMENT_PROMPT
+from src.topic_modeling.prompts import BATCH_TOPIC_ASSIGNMENT_PROMPT
 from src.topic_modeling.utils import extract_json
 
 # ---------- CONFIG ----------
-load_dotenv()
 DOOMSCROLLING_URLS = os.getenv("DOOMSCROLLING_URLS", "")
 DOOMSCROLLING_LIST = [u.strip() for u in DOOMSCROLLING_URLS.split(",") if u.strip()]
 
-NEW_CLASSIFICATION_TABLE = "CLASSIFIED_HISTORY_TOPICS"
+NEW_CLASSIFICATION_TABLE = "CLASSIFICATION_HISTORY_TABLE"
 REFINED_TOPICS_TABLE = "REFINED_TOPICS"
-client_snowflake = SnowflakeORM()
+BATCH_SIZE = 20
+LLM_LIMIT = 10_000
 
+client_snowflake = SnowflakeORM()
 
 # ---------- HELPERS ----------
 def fetch_refined_topics() -> str:
@@ -44,82 +51,152 @@ def fetch_refined_topics() -> str:
         return json.dumps(rows[0]) if rows and rows[0] else "{}"
 
 
-def classify_entry(entry: Dict, topics_json: str) -> List[str]:
-    """
-    Classify a single browsing history entry into topics.
-    - Always add "Doomscrolling" if the URL matches DOOMSCROLLING_LIST.
-    - Still call the LLM to allow other topics to be assigned.
-    """
-    topics = []
-
-    if any(bad_url in entry["url"] for bad_url in DOOMSCROLLING_LIST):
-        topics.append("Doomscrolling")
-
-    prompt = TOPIC_ASSIGNMENT_PROMPT.format(
-        title=entry["title"],
-        url=entry["url"],
-        topics_json=topics_json
-    )
-    response = call_llm(prompt)
-
-    try:
-        llm_topics = extract_json(response)
-        for t in llm_topics:
-            if t not in topics:
-                topics.append(t)
-    except Exception as e:
-        print(f"⚠ Failed to classify entry {entry['title']}: {e}")
-
-    return topics
-
-
-def write_single_entry_to_snowflake(entry: Dict) -> None:
-    """Insert a single classified entry directly into Snowflake."""
+def write_entry(entry: Dict) -> None:
+    """Insert a single classified entry into Snowflake only if URL is not already present."""
     with client_snowflake.session_scope() as session:
+        # Ensure table exists
         session.execute(text(f"""
             CREATE TABLE IF NOT EXISTS {NEW_CLASSIFICATION_TABLE} (
-                id STRING,
                 title STRING,
                 url STRING,
-                domain STRING,
                 topics ARRAY
             )
         """))
 
+        # Insert only if URL does not already exist
         session.execute(
             text(f"""
-                INSERT INTO {NEW_CLASSIFICATION_TABLE} (id, title, url, domain, topics)
-                SELECT $1, $2, $3, $4, PARSE_JSON($5)
-                FROM VALUES (:id, :title, :url, :domain, :topics);
+                INSERT INTO {NEW_CLASSIFICATION_TABLE} (title, url, topics)
+                SELECT :title, :url, PARSE_JSON(:topics)
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM {NEW_CLASSIFICATION_TABLE}
+                    WHERE url = :url
+                )
             """),
             {
-                "id": entry["id"],
                 "title": entry["title"],
                 "url": entry["url"],
-                "domain": entry["domain"],
                 "topics": json.dumps(entry.get("topics", []))
             }
         )
 
+def classify_batch(batch: List[Dict], topics_json: str) -> Dict[str, List[str]]:
+    """
+    Call LLM on a batch of entries, return mapping url -> topics list.
+    Doomscrolling is always merged after LLM classification so both can coexist.
+    """
+    mapping: Dict[str, List[str]] = {}
+
+    # Format prompt with all non-doomscrolling entries
+    urls_for_llm = [{"title": e["title"], "url": e["url"]} for e in batch]
+    if urls_for_llm:
+        prompt = BATCH_TOPIC_ASSIGNMENT_PROMPT.format(
+            urls=json.dumps(urls_for_llm, indent=2),
+            topics_json=topics_json
+        )
+        response = call_llm(prompt)
+
+        try:
+            llm_output = extract_json(response)
+            for url, obj in llm_output.items():
+                mapping[url] = obj.get("classes", ['None'])
+        except Exception as e:
+            print(f"⚠ Failed batch classification: {e}")
+
+    for e in batch:
+        if any(bad in e["url"] for bad in DOOMSCROLLING_LIST):
+            if e["url"] not in mapping:
+                mapping[e["url"]] = []
+            if "Doomscrolling" not in mapping[e["url"]]:
+                mapping[e["url"]].append("Doomscrolling")
+
+    return mapping
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
     topics_json = fetch_refined_topics()
 
+    # Fetch all urls
     with client_snowflake.session_scope() as session:
         rows = session.query(
             ChromeHistory.title,
-            ChromeHistory.url,
-            ChromeHistory.domain
+            ChromeHistory.url
         ).distinct().all()
 
-        urls_already_predicted = session.query(ClassifiedHistoryTopics.url).distinct().all()
+    with client_snowflake.session_scope() as session:
+        # Ensure table exists
+        session.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS {NEW_CLASSIFICATION_TABLE} (
+                title STRING,
+                url STRING,
+                topics ARRAY
+            )
+        """))
 
-        rows_to_process = list(set([row for row in rows if row.url not in [url[0] for url in urls_already_predicted]]))
-        print(len(rows_to_process))
-        for r in tqdm(rows_to_process):
-            entry = {"id": 404, "title": r.title, "url": r.url, "domain": r.domain}
-            entry["topics"] = classify_entry(entry, topics_json)
-            write_single_entry_to_snowflake(entry)
-            time.sleep(1)
-            print(f"✅ Stored classified entry {entry['id']}")
+        # Count already classified rows
+        result = session.execute(
+            text(f"SELECT COUNT(DISTINCT url) FROM {NEW_CLASSIFICATION_TABLE}")
+        ).fetchone()
+        done_count = result[0] if result and result[0] is not None else 0
+
+        # Load existing rows
+        classified_rows = session.execute(
+            text(f"SELECT title, url, topics FROM {NEW_CLASSIFICATION_TABLE}")
+        ).fetchall()
+
+    # Initialize lists from table contents
+    titles = list(set([row[0] for row in classified_rows]))
+    urls   = list(set([row[1] for row in classified_rows]))
+    labels = list(set([row[2] for row in classified_rows]))
+
+    print(f"Initialized {len(titles)} records from {NEW_CLASSIFICATION_TABLE}")
+    rows = [row for row in rows if row[1] not in list(set(urls))]
+
+    for i in tqdm(range(0, len(rows), BATCH_SIZE)):
+        batch_rows = rows[i:i+BATCH_SIZE]
+        batch = [{"title": r.title, "url": r.url} for r in batch_rows]
+
+        if done_count < LLM_LIMIT:
+            mapping = classify_batch(batch, topics_json)
+            for e in batch:
+                url = e["url"]
+                topics = mapping.get(url, [])
+                write_entry({"title": e["title"], "url": url, "topics": topics})
+
+                if topics:
+                    titles.append(e["title"])
+                    urls.append(url)
+                    labels.append(topics)
+
+            done_count += len(batch)
+        else:
+            # ---- Train classifier if not yet trained ----
+            if not titles:
+                print("⚠ No training data collected for classifier")
+                break
+
+            print("🔨 Training local classifier...")
+            mlb = MultiLabelBinarizer()
+
+            titles_train, labels_train = zip(*[(title, json.loads(lbl)) if len(json.loads(lbl)) > 0 else (title, 'None') for title, lbl in zip(titles, labels)])
+
+            Y = mlb.fit_transform(labels_train)
+            clf = Pipeline([
+                ("tfidf", TfidfVectorizer(max_features=20_000, ngram_range=(1, 2))),
+                ("clf", OneVsRestClassifier(LogisticRegression(max_iter=1000)))
+            ])
+            clf.fit(titles_train, Y)
+            print("✅ Classifier trained, switching to local predictions")
+
+            # ---- Infer remaining entries ----
+            for j in tqdm(range(i, len(rows))):
+                r = rows[j]
+                if r.title:
+                    pred = clf.predict([r.title])
+                    topics = mlb.inverse_transform(pred)[0]
+                    write_entry({"title": r.title, "url": r.url, "topics": list(topics)})
+                else:
+                    write_entry({"title": r.title, "url": r.url, "topics": ['None']})
+
+            break

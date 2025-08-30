@@ -5,3 +5,4 @@ google-cloud-sdk/
 logs/
 .env
 __pycache__
+.user.yml

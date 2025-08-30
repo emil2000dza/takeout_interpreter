@@ -4,15 +4,11 @@ WITH base AS (
     SELECT
         id,
         datetime,
-        title,
-        url,
-        domain,
-        time_since_last_visit
-    FROM {{ ref('raw_history') }}
+    FROM {{ source('chrome_history', 'raw_history') }}
 ),
 
 enriched AS (
-    SELECT
+    SELECT DISTINCT
         id,
         dayofweek(DATETIME) AS day_of_week,
         extract(HOUR FROM DATETIME) as hour_of_day,
@@ -22,9 +18,8 @@ enriched AS (
             WHEN extract(hour from datetime) BETWEEN 15 AND 18 THEN 'Afternoon'
             WHEN extract(hour from datetime) BETWEEN 19 AND 23 THEN 'Evening'
             ELSE 'Night'
-        END AS time_of_day,
-        SUM(EXTRACT(EPOCH FROM time_since_last_visit)) AS seconds_since_last_visit
+        END AS time_of_day
     FROM base
 )
 
-SELECT * FROM enriched;
+SELECT * FROM enriched

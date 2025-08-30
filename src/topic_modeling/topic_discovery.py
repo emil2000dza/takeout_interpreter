@@ -21,20 +21,18 @@ client_snowflake = SnowflakeORM()
 
 
 # ---------- FUNCTIONS ----------
-def fetch_history(limit: int = None) -> List[Dict]:
+def fetch_history(domain : str) -> List[Dict]:
     """Fetch Chrome history from Snowflake."""
     with client_snowflake.session_scope() as session:
         query = session.query(
             ChromeHistory.title,
             ChromeHistory.url,
-            ChromeHistory.domain
-        )
-        if limit:
-            query = query.limit(limit)
+        ).filter(ChromeHistory.domain == domain)
+
         rows = query.all()
         
         history = [
-            {"title": r.title, "url": r.url, "domain": r.domain}
+            {"title": r.title, "url": r.url}
             for r in rows
         ]
         random.shuffle(history)
@@ -51,15 +49,14 @@ def format_batch_for_prompt(batch: List[Dict]) -> str:
     cleaned = [
         {
             "title": row["title"],
-            "url": row["url"],
-            "domain": row.get("domain", "")
+            "url": row["url"]
         }
         for row in batch
         if row.get("title") and row.get("url")
     ]
     return json.dumps(cleaned, ensure_ascii=False)
 
-def run_topic_discovery(rows: List[Dict]):
+def run_topic_discovery(rows: List[Dict], domain : str):
     """Run topic discovery across all batches and merge results."""
     seen_topics = set()
 
@@ -68,7 +65,8 @@ def run_topic_discovery(rows: List[Dict]):
 
     for i, batch in enumerate(batches, start=1):
         prompt = TOPIC_DISCOVERY_PROMPT.format(
-            history_sample=format_batch_for_prompt(batch)
+            history_sample=format_batch_for_prompt(batch),
+            domain=domain
         )
         response = call_llm(prompt)
 
@@ -83,16 +81,10 @@ def run_topic_discovery(rows: List[Dict]):
         new_topics_dict = {t: d for t, d in topics_dict.items() if t not in seen_topics}
 
         if new_topics_dict:
-            write_topics_to_snowflake(client_snowflake, new_topics_dict, NEW_TOPICS_TABLE)
+            write_topics_to_snowflake(client_snowflake, new_topics_dict, domain.upper() + NEW_TOPICS_TABLE)
             seen_topics.update(new_topics_dict.keys())
             print(f"✅ Batch {i} processed. Topics written: {len(new_topics_dict)}")
         else:
             print(f"ℹ Batch {i} produced no new topics.")
 
     print(f"🎯 Total unique topics stored: {len(seen_topics)}")
-
-
-# ---------- MAIN ----------
-if __name__ == "__main__":
-    history_rows = fetch_history()
-    run_topic_discovery(history_rows)
