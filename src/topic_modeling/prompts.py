@@ -83,7 +83,7 @@ Now, extract the topic set from the {domain} browsing history.
 """
 
 TOPIC_ASSIGNMENT_PROMPT = """
-You are a classification system that assigns browsing history entries to predefined topics.
+You are a classification system that assigns browsing history entries in {domain} website to predefined topics.
 
 ## Topics:
 {topics_json} 
@@ -99,7 +99,7 @@ url: {url}
 - Select the relevant topics (max. 3 topics) associated to the entry from the topic list.
 - If none applies perfectly,  output "Other".
 - If the URL and title can not lead to any actionnable insight for the user output an empty JSON,
-- Consider both the domain’s reputation and the specific page content.
+- Consider the specific page content browsed an that the user browses in {domain}.
 
 ## Output:
 You must output **only valid JSON**, with **double quotes**, no trailing commas, no extra text. 
@@ -114,7 +114,7 @@ name and each value is:
 """
 
 BATCH_TOPIC_ASSIGNMENT_PROMPT = """
-You are a strict JSON classification system. Your role is to assign batches of browsing history entries to one or more predefined topics.
+You are a strict JSON classification system. Your role is to assign batches of browsing history entries on {domain} website to one or more predefined topics.
 
 ## Topics:
 {topics_json} 
@@ -129,7 +129,7 @@ Each topic has:
 ## Task:
 For each browsing history entry in the batch:
 1. Match the entry to **up to 3 relevant topics** from the topic list above.
-   - Select topics that best reflect the domain reputation AND the page intent in the title/URL.
+   - Select topics that best reflect the page intent in the title/URL given {domain} website reputation.
 2. If no listed topic applies, assign the entry to **"Other"**.
 3. If the entry contains no actionable insight (e.g., a meaningless URL and title combo), return **no object** for that entry (classes should be empty).
 

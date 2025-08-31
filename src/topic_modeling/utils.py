@@ -5,11 +5,27 @@ Utility functions shared between topic_modeling scripts.
 """
 
 import re
+import logging
 import json
 import json5
 from src.db.snowflake_client import SnowflakeORM
 from typing import Dict
 from sqlalchemy import text
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:%(name)s:%(message)s'
+)
+logger = logging.getLogger(__name__)
+
+def fetch_topics(client_snowflake: SnowflakeORM,
+                 table_name : str):
+    """Fetch discovered topics from Snowflake."""
+    with client_snowflake.session_scope() as session:
+        topics = session.execute(
+            text(f"SELECT topic_name, description FROM {table_name}")
+        ).fetchall()
+        return topics
 
 def format_topics(topics) -> str:
     """
@@ -25,6 +41,33 @@ def format_topics(topics) -> str:
         )
     return "\n".join(lines)
 
+def has_existing_topics(client_snowflake : SnowflakeORM,
+                        table_name: str, 
+                        min_count: int = 20) -> bool:
+    """
+    Check if the topics table for a given domain already contains at least `min_count` rows.
+
+    Parameters
+    ----------
+    domain : str
+        Domain name (e.g., "nytimes.com").
+    min_count : int, optional
+        Minimum number of topics required to consider the table "complete".
+
+    Returns
+    -------
+    bool
+        True if the table already exists with at least `min_count` rows.
+    """
+    with client_snowflake.session_scope() as session:
+        try:
+            result = session.execute(
+                text(f"SELECT COUNT(*) FROM {table_name}")
+            ).fetchone()
+        except Exception:
+            return False  # Table does not exist yet
+
+        return bool(result and result[0] >= min_count)
 
 
 def write_topics_to_snowflake(client_snowflake : SnowflakeORM, 
@@ -70,5 +113,4 @@ def extract_json(text: str) -> dict:
     try:
         return json5.loads(json_str)
     except Exception as e:
-        print(f'ERROR : {e}')
-        print(json_str)
+        logger.warning(f'ERROR : {e}')
