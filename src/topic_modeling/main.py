@@ -1,31 +1,25 @@
-import logging
-import os 
+import os
+from typing import Optional
 
 from dotenv import load_dotenv
-from src.topic_modeling.topic_discovery import fetch_history, run_topic_discovery
-from src.topic_modeling.topic_refinment import run_topic_refinement
-from src.topic_modeling.topic_classification import classify_entries
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s:%(name)s:%(message)s'
-)
-logger = logging.getLogger(__name__)
+from src.topic_modeling.pipeline import TopicModelingPipeline
 
 load_dotenv()
 DOMAIN_TO_MODEL = os.getenv("DOMAIN_NAMES_FOR_TOPIC_MODELING", "")
 DOMAIN_TO_MODEL_LIST = [u.strip() for u in DOMAIN_TO_MODEL.split(",") if u.strip()]
 
-for domain in DOMAIN_TO_MODEL_LIST:
-    logger.info(f'⚙⚙ PROCESSING {domain.upper()}')
+def run_for_domain(domain: str, sample_limit: Optional[int] = None):
+    """Example end-to-end runner keeping the API surface tiny."""
+    pipe = TopicModelingPipeline(domain)
+    pipe.discover_topics(sample_limit=sample_limit)
+    pipe.refine_topics()
 
-    if not domain.rsplit('.', 1)[0]:
-        raise(f"Invalid URL entered: '{domain.rsplit('.', 1)[0].replace('.', '_')}'")
+    # Stream history for classification to avoid high memory usage
+    with pipe.repo as db:
+        entries = db.fetch_history_by_domain(domain)
+        pipe.classify(entries)
 
-    history_rows = fetch_history(domain)
-
-    run_topic_discovery(history_rows, domain)
-    run_topic_refinement(domain)
-    classify_entries(history_rows, domain)
-
-    
+if __name__ == '__main__':
+    for domain in DOMAIN_TO_MODEL_LIST:
+        run_for_domain(domain)

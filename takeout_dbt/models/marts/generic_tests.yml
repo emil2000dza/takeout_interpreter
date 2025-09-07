@@ -8,3 +8,11 @@ models:
           - relationships:
               to: source('chrome_schema', 'raw_history')
               field: id
+              to: source('chrome_schema', 'REDDIT_CLASSIFICATION_HISTORY_TABLE')
+              field: url
+              to: source('chrome_schema', 'JEUXVIDEO_CLASSIFICATION_HISTORY_TABLE')
+              field: url
+              to: source('chrome_schema', 'M_FACEBOOK_CLASSIFICATION_HISTORY_TABLE')
+              field: url
+              to: source('chrome_schema', 'SEARCH_BRAVE_CLASSIFICATION_HISTORY_TABLE')
+              field: url

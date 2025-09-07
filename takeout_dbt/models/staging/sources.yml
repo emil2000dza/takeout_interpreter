@@ -12,3 +12,27 @@ sources:
             tests:
               - unique
               - not_null
+      - name: REDDIT_CLASSIFICATION_HISTORY_TABLE
+        columns:
+          - name: url
+            tests:
+              - unique
+              - not_null
+      - name: JEUXVIDEO_CLASSIFICATION_HISTORY_TABLE
+        columns:
+          - name: url
+            tests:
+              - unique
+              - not_null
+      - name: SEARCH_BRAVE_CLASSIFICATION_HISTORY_TABLE
+        columns:
+          - name: url
+            tests:
+              - unique
+              - not_null
+      - name: M_FACEBOOK_CLASSIFICATION_HISTORY_TABLE
+        columns:
+          - name: url
+            tests:
+              - unique
+              - not_null

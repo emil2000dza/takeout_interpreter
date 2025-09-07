@@ -20,8 +20,16 @@ SELECT DISTINCT
     {% endfor %}
     {% for i in range(1, 3) %}
         urls.domain_depth_{{ i }} AS domain_depth_{{ i }}{% if not loop.last %},{% endif %}
-    {% endfor %}
+    {% endfor %},
+    reddit_class.topics AS reddit_classification,
+    jv_class.topics AS jv_classification,
+    fb_class.topics AS fb_classification,
+    brave_class.topics AS brave_classification,
 FROM {{ source('chrome_history','raw_history') }}
 INNER JOIN {{ ref('stg_sessions') }} AS sessions USING (id)
 INNER JOIN {{ ref('stg_time_enrichment') }} AS times USING (id)
 INNER JOIN {{ ref('stg_url_parts') }} AS urls USING (url)
+LEFT JOIN {{ source('chrome_history', 'REDDIT_CLASSIFICATION_HISTORY_TABLE')}}  AS reddit_class USING(url)
+LEFT JOIN {{ source('chrome_history', 'JEUXVIDEO_CLASSIFICATION_HISTORY_TABLE')}} AS jv_class USING(url)
+LEFT JOIN {{ source('chrome_history', 'M_FACEBOOK_CLASSIFICATION_HISTORY_TABLE')}} AS fb_class USING(url)
+LEFT JOIN {{ source('chrome_history', 'SEARCH_BRAVE_CLASSIFICATION_HISTORY_TABLE')}} AS brave_class USING(url)

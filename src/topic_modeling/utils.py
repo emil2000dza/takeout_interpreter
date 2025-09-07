@@ -4,13 +4,15 @@ utils.py
 Utility functions shared between topic_modeling scripts.
 """
 
-import re
-import logging
 import json
-import json5
-from src.db.snowflake_client import SnowflakeORM
+import logging
+import re
 from typing import Dict
+
+import json5
 from sqlalchemy import text
+
+from src.db.snowflake_client import SnowflakeORM
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,14 +20,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def fetch_topics(client_snowflake: SnowflakeORM,
-                 table_name : str):
-    """Fetch discovered topics from Snowflake."""
-    with client_snowflake.session_scope() as session:
-        topics = session.execute(
-            text(f"SELECT topic_name, description FROM {table_name}")
-        ).fetchall()
-        return topics
+# ===================
+# String utils
+# ===================
 
 def format_topics(topics) -> str:
     """
@@ -41,6 +38,26 @@ def format_topics(topics) -> str:
         )
     return "\n".join(lines)
 
+def extract_json(text: str) -> dict:
+    """Extract first JSON-like object from LLM output using json5 for leniency."""
+    match = re.search(r'\{.*\}', text, flags=re.DOTALL)
+    if not match:
+        raise ValueError("No JSON object found in LLM output")
+    
+    json_str = match.group()
+    
+    # Parse using json5, which handles:
+    # - trailing commas
+    # - single quotes
+    # - multi-line strings
+    try:
+        return json5.loads(json_str)
+    except Exception as e:
+        logger.warning(f'ERROR : {e}')
+
+# ===================
+# Snowflake client utils
+# ===================
 def has_existing_topics(client_snowflake : SnowflakeORM,
                         table_name: str, 
                         min_count: int = 20) -> bool:
@@ -70,6 +87,15 @@ def has_existing_topics(client_snowflake : SnowflakeORM,
         return bool(result and result[0] >= min_count)
 
 
+def fetch_topics(client_snowflake: SnowflakeORM,
+                 table_name : str):
+    """Fetch discovered topics from Snowflake."""
+    with client_snowflake.session_scope() as session:
+        topics = session.execute(
+            text(f"SELECT topic_name, description FROM {table_name}")
+        ).fetchall()
+        return topics
+
 def write_topics_to_snowflake(client_snowflake : SnowflakeORM, 
                               topics: Dict, 
                               topics_table :str) -> None:
@@ -98,19 +124,22 @@ def write_topics_to_snowflake(client_snowflake : SnowflakeORM,
                     "example_titles": json.dumps(details.get("example_titles", []))
                 }
             )
-def extract_json(text: str) -> dict:
-    """Extract first JSON-like object from LLM output using json5 for leniency."""
-    match = re.search(r'\{.*\}', text, flags=re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in LLM output")
-    
-    json_str = match.group()
-    
-    # Parse using json5, which handles:
-    # - trailing commas
-    # - single quotes
-    # - multi-line strings
-    try:
-        return json5.loads(json_str)
-    except Exception as e:
-        logger.warning(f'ERROR : {e}')
+
+# ===================
+# Naming utils
+# ===================
+
+def normalize_domain(domain: str) -> str:
+    """Normalize domain to a stable, UPPER_CASE token for table names.
+    Rule: drop the last TLD segment, replace remaining dots by underscores, uppercase.
+    Example: "news.example.co.uk" → "NEWS_EXAMPLE_CO".
+    """
+    parts = domain.split(".")
+    if len(parts) > 1:
+        parts = parts[:-1]
+    token = "_".join(parts).upper()
+    return token or domain.upper()
+
+
+def table_name(domain: str, suffix: str) -> str:
+    return f"{normalize_domain(domain)}_{suffix}"
