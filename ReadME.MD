@@ -1,10 +1,8 @@
 # Digital Footprint Analysis
 
-<img src="img/output.gif" width="100%">
+<img src="img/output_small.gif" width="100%">
 
-This project explores my **digital footprint**, focusing on Google Chrome browsing activity on mobile. Since most of my online activity is concentrated on Chrome, we use Google Takeout data to analyze, transform, and classify browsing behavior into broader topics using **LLMs**.
-
-The goal of this project is to provide visualization examples and scripts for exploring an individual's digital footprint using their Google Takeout data. It combines Snowflake, dbt, and Metabase with a topic modeling pipeline that maps each visited URL to broader browsing activity topics.
+This project explores **digital footprints**. It provides visualization examples and scripts for exploring an individual's digital footprint using their Google Takeout data. It combines Snowflake, dbt, and Metabase with a topic modeling pipeline leveraging **LLMs**
 - **Snowflake** – Data warehouse for storage and querying  
 - **GCS** – Hosting raw and processed data  
 - **Metabase** – Visualization and exploration of results  
