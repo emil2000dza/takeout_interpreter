@@ -1,6 +1,6 @@
 # Digital Footprint Analysis
 
-![Browsing History Overview](img/takeout.gif)
+<img src="img/takeout.gif" width="100%">
 
 This project explores my **digital footprint**, focusing on Google Chrome browsing activity on mobile. Since most of my online activity is concentrated on Chrome, we use Google Takeout data to analyze, transform, and classify browsing behavior into broader topics using **LLMs**.
 
@@ -55,4 +55,5 @@ Parsers are also available for other Takeout data (YouTube, phone history, etc.)
 
 - The .env file must be correctly configured before running any scripts.
 - Parsers support YouTube, Chrome, and phone history exports from Google Takeout.
+
 - Topic modeling output can serve as input to DBT mart models for downstream analysis.
