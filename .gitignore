@@ -1,8 +1,10 @@
 *.csv
+*.db
 data/raw_data/Mon activité/*
 data/raw_data/Historique.json
 google-cloud-sdk/
 logs/
+img/
 .env
 __pycache__
 .user.yml

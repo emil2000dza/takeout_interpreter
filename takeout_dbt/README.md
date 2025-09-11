@@ -1,15 +1,23 @@
-Welcome to your new dbt project!
+# Takeout DBT Project
 
-### Using the starter project
+This is a small **DBT project** for transforming Google Takeout history data ingested into Snowflake.
 
-Try running the following commands:
-- dbt run
-- dbt test
+---
 
+## Overview
 
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+- Transforms raw Takeout data (YouTube, Chrome, Phone history, etc.) into structured tables.  
+- Supports **staging** and **mart** models:  
+  - **Staging models** – Clean and standardize raw data.  
+  - **Mart models** – Ready-to-use datasets for analysis and reporting.  
+- Table design was motivated by Metabase usage.  
+- The dataset created by the topic modeling pipeline can also be used as input to the mart models.
+
+---
+
+## Usage
+
+1. Ensure your raw Takeout data is loaded into Snowflake.  
+2. Run DBT transformations:  
+   ```bash
+   dbt run

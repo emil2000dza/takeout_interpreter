@@ -3,7 +3,7 @@
 SELECT DISTINCT
     raw_history.id,
     raw_history.title,
-    raw_history.datetime,
+    raw_history.datetime AS visit_date,
     sessions.seconds_since_last_visit AS seconds_since_last_visit,
     sessions.seconds_until_next_visit AS seconds_until_next_visit,
     sessions.minutes_since_last_visit AS minutes_since_last_visit,
@@ -29,7 +29,7 @@ FROM {{ source('chrome_history','raw_history') }}
 INNER JOIN {{ ref('stg_sessions') }} AS sessions USING (id)
 INNER JOIN {{ ref('stg_time_enrichment') }} AS times USING (id)
 INNER JOIN {{ ref('stg_url_parts') }} AS urls USING (url)
-LEFT JOIN {{ source('chrome_history', 'REDDIT_CLASSIFICATION_HISTORY_TABLE')}}  AS reddit_class USING(url)
-LEFT JOIN {{ source('chrome_history', 'JEUXVIDEO_CLASSIFICATION_HISTORY_TABLE')}} AS jv_class USING(url)
-LEFT JOIN {{ source('chrome_history', 'M_FACEBOOK_CLASSIFICATION_HISTORY_TABLE')}} AS fb_class USING(url)
-LEFT JOIN {{ source('chrome_history', 'SEARCH_BRAVE_CLASSIFICATION_HISTORY_TABLE')}} AS brave_class USING(url)
+-- LEFT JOIN {{ source('chrome_history', 'REDDIT_CLASSIFICATION_HISTORY_TABLE')}}  AS reddit_class USING(url)
+-- LEFT JOIN {{ source('chrome_history', 'JEUXVIDEO_CLASSIFICATION_HISTORY_TABLE')}} AS jv_class USING(url)
+-- LEFT JOIN {{ source('chrome_history', 'M_FACEBOOK_CLASSIFICATION_HISTORY_TABLE')}} AS fb_class USING(url)
+-- LEFT JOIN {{ source('chrome_history', 'SEARCH_BRAVE_CLASSIFICATION_HISTORY_TABLE')}} AS brave_class USING(url)
