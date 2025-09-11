@@ -57,4 +57,3 @@ Parsers are also available for other Takeout data (YouTube, phone history, etc.)
 - Parsers support YouTube, Chrome, and phone history exports from Google Takeout.
 
 - Topic modeling output can serve as input to DBT mart models for downstream analysis.
-

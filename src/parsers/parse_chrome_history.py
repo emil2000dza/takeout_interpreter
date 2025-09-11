@@ -17,10 +17,8 @@ def convert_time_usec(usec):
 # Create DataFrame
 df = pd.DataFrame(history)
 
-# Add readable time column
 df['datetime'] = df['time_usec'].apply(convert_time_usec)
 
-# Reorder columns
 columns = ['datetime', 'title', 'url', 'page_transition_qualifier', 'favicon_url', 'client_id']
 df = df[columns]
 

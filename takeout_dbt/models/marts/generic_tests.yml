@@ -1,3 +1,6 @@
+sources:
+
+
 models: 
   - name: fct_browsing_activity_enriched
     columns:

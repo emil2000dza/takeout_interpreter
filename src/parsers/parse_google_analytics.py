@@ -12,19 +12,16 @@ def parse_and_save_csv(html_file, csv_file):
 
         soup = BeautifulSoup(f, 'html.parser')
 
-        # Iterate over each activity block
         for record in soup.select('.outer-cell'):
             header = ""
             url = ""
             datetime = ""
             product = ""
 
-            # Header cell text
             header_tag = record.select_one('.header-cell p')
             if header_tag:
                 header = header_tag.get_text(strip=True)
 
-            # First content-cell: URL + datetime
             content_cells = record.select('.content-cell')
             if content_cells:
                 main_content = content_cells[0]
