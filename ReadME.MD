@@ -1,6 +1,6 @@
 # Digital Footprint Analysis
 
-<img src="img/takeout.gif" width="100%">
+<img src="img/output.mp4" width="100%">
 
 This project explores my **digital footprint**, focusing on Google Chrome browsing activity on mobile. Since most of my online activity is concentrated on Chrome, we use Google Takeout data to analyze, transform, and classify browsing behavior into broader topics using **LLMs**.
 
