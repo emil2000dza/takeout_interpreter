@@ -1,6 +1,6 @@
 # Digital Footprint Analysis
 
-<img src="img/output_small.gif" width="100%">
+<img src="img/output_medium.gif" width="100%">
 
 This project explores digital footprints using browsing history exported from **Google Takeout (Google Chrome data)**. It provides scripts and visualization examples for analyzing its google usage. The workflow integrates :
 - **GCS** – Hosting raw and processed data
