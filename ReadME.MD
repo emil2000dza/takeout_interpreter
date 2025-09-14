@@ -2,17 +2,20 @@
 
 <img src="img/output_small.gif" width="100%">
 
-This project explores **digital footprints**. It provides visualization examples and scripts for exploring an individual's digital footprint using their Google Takeout data. It combines Snowflake, dbt, and Metabase with a topic modeling pipeline leveraging **LLMs**
-- **Snowflake** – Data warehouse for storage and querying  
-- **GCS** – Hosting raw and processed data  
-- **Metabase** – Visualization and exploration of results  
+This project explores digital footprints using browsing history exported from **Google Takeout (Google Chrome data)**. It provides scripts and visualization examples for analyzing its google usage. The workflow integrates :
+- **GCS** – Hosting raw and processed data
+- **Snowflake** – Data warehouse for storage and querying
+- **dbt** - Data trasnformation 
+- **Gemini** - Topic modeling using LLMs,
+- **Metabase** – Visualization and exploration of results
 
-Parsers are also available for other Takeout data (YouTube, phone history, etc.).
+Additional parsers are available for other Google Takeout data sources (e.g., YouTube history, phone activity).
 
 ---
 
 ## ⚙️ Prerequisites
 
+- Export Google Chrome History using [Google Takeout](https://takeout.google.com/).
 - Docker installed on your system  
 - `.env` file containing:  
   - Snowflake account parameters  
@@ -55,3 +58,4 @@ Parsers are also available for other Takeout data (YouTube, phone history, etc.)
 - Parsers support YouTube, Chrome, and phone history exports from Google Takeout.
 
 - Topic modeling output can serve as input to DBT mart models for downstream analysis.
+
