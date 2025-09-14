@@ -1,7 +1,5 @@
 # Digital Footprint Analysis
 
-<img src="img/output_medium.gif" width="100%">
-
 This project explores digital footprints using browsing history exported from **Google Takeout (Google Chrome data)**. It provides scripts and visualization examples for analyzing its google usage. The workflow integrates :
 - **GCS** – Hosting raw and processed data
 - **Snowflake** – Data warehouse for storage and querying
@@ -58,4 +56,11 @@ Additional parsers are available for other Google Takeout data sources (e.g., Yo
 - Parsers support YouTube, Chrome, and phone history exports from Google Takeout.
 
 - Topic modeling output can serve as input to DBT mart models for downstream analysis.
+
+---
+
+## 🚀 Example usage
+
+<img src="img/output_medium.gif" width="100%">
+
 
