@@ -1,25 +1,22 @@
 FROM python:3.11-slim
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libssl-dev libffi-dev libpq-dev git \
  && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
-# Copy and install dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
 
-# Copy source code
+RUN uv sync --frozen
+
 COPY src/ src/
 COPY .env .env
 
-# Set PYTHONPATH
 ENV PYTHONPATH=/app/src
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Entrypoint
 ENTRYPOINT ["python", "-m", "topic_modeling.main"]

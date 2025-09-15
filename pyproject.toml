@@ -1,0 +1,18 @@
+[project]
+name = "takeout-interpreter"
+version = "0.1.0"
+description = "Launch topic modeling script"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4==4.13.4",
+    "dbt-snowflake==1.10.0",
+    "google-genai==1.30.0",
+    "google-generativeai==0.8.5",
+    "json5==0.12.1",
+    "pandas==2.3.1",
+    "python-dotenv>=0.9.9,<1.0.0",
+    "scikit-learn==1.7.1",
+    "snowflake-sqlalchemy==1.7.6",
+    "sqlalchemy==2.0.43",
+]
